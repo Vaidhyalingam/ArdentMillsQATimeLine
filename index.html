@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault Release Timeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', 'Segoe UI', -apple-system, sans-serif;
+    background: linear-gradient(160deg, #f8fafc 0%, #f1f5f9 50%, #e8edf4 100%);
+    color: #1e293b;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: #fff;
+    box-shadow: 0 3px 16px rgba(13,148,136,0.35);
+  }
+  .header h1 { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -0.7px; }
+  .header p { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+  /* Toggle */
+  .toggle-group {
+    display: flex; gap: 3px; background: #fff; border-radius: 12px; padding: 4px;
+    border: 1px solid #e2e8f0; box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  }
+  .toggle-btn {
+    padding: 9px 22px; border-radius: 9px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 700; font-family: inherit;
+    transition: all 0.25s ease; background: transparent; color: #94a3b8;
+  }
+  .toggle-btn.active { background: #0f172a; color: #fff; box-shadow: 0 2px 8px rgba(15,23,42,0.2); }
+  .toggle-btn:hover:not(.active) { color: #475569; background: #f8fafc; }
+
+  /* Stat Cards */
+  .stats { display: flex; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .stat-card {
+    flex: 1 1 200px; padding: 18px 22px; border-radius: 16px;
+    position: relative; overflow: hidden; transition: transform 0.2s ease;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card .bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .stat-card .label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+  .stat-card .value { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .stat-card .sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+  .stat-red { background: #fef2f2; border: 1px solid #fecaca; }
+  .stat-red .bar { background: #dc2626; }
+  .stat-red .value { color: #dc2626; }
+
+  .stat-teal { background: #f0fdfa; border: 1px solid #99f6e4; }
+  .stat-teal .bar { background: #0d9488; }
+  .stat-teal .value { color: #0d9488; }
+
+  .stat-amber { background: #fffbeb; border: 1px solid #fde68a; }
+  .stat-amber .bar { background: #d97706; }
+  .stat-amber .value { color: #d97706; }
+
+  /* Chart Container */
+  .chart-container {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 20px;
+    padding: 28px 24px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    position: relative; overflow-x: auto;
+  }
+
+  /* SVG interactivity */
+  .data-point { cursor: pointer; }
+  .data-point:hover .hover-ring { opacity: 0.1 !important; }
+  .data-point:hover .drop-line { opacity: 0.35 !important; }
+  .data-point:hover .outer-circle { r: 9; }
+  .data-point:hover .inner-dot { r: 5; }
+  .data-point:hover .val-label { opacity: 1 !important; font-weight: 800; }
+
+  .tooltip-group { pointer-events: none; opacity: 0; transition: opacity 0.15s ease; }
+  .data-point:hover .tooltip-group { opacity: 1; }
+  .data-point:hover .version-label { fill: #0f172a !important; font-weight: 700; }
+
+  /* Bottom bar */
+  .insight-bar {
+    margin-top: 16px; padding: 14px 22px; border-radius: 14px;
+    background: #fff; border: 1px solid #e2e8f0;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.03);
+  }
+  .insight-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    flex-shrink: 0;
+  }
+  .insight-bar strong { font-size: 13px; color: #0f766e; }
+  .insight-bar span { font-size: 12px; color: #64748b; display: block; margin-top: 2px; }
+
+  /* Presentation hint */
+  .hint {
+    text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8;
+  }
+  .hint kbd {
+    background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px;
+    padding: 2px 6px; font-family: inherit; font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-left">
+        <div class="logo">V</div>
+        <div>
+          <h1>Vault Release Timeline</h1>
+          <p>How automation transformed our release velocity from erratic to agile</p>
+        </div>
+      </div>
+    </div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" onclick="switchView('items')" id="btn-items">Work Items</button>
+      <button class="toggle-btn" onclick="switchView('cadence')" id="btn-cadence">Release Cadence</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats-container"></div>
+
+  <!-- Chart -->
+  <div class="chart-container">
+    <svg id="chart" viewBox="0 0 1100 400" style="width:100%;height:auto;display:block;"></svg>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-bar">
+    <div class="insight-icon">⚡</div>
+    <div>
+      <strong>Automation enabled a truly agile, biweekly release cadence</strong>
+      <span>From erratic 8–52 day gaps with risky mega-batches → consistent ~11 day cycles with right-sized deliverables</span>
+    </div>
+  </div>
+
+  <div class="hint">Press <kbd>F11</kbd> for full-screen presentation mode</div>
+</div>
+
+<script>
+const releases = [
+  { ver: "119.0", items: 27, date: "Apr 20, 2025", era: "manual", days: null, ts: new Date(2025,3,20) },
+  { ver: "119.1", items: 2, date: "Apr 28, 2025", era: "manual", days: 8, ts: new Date(2025,3,28) },
+  { ver: "119.2", items: 16, date: "May 17, 2025", era: "manual", days: 19, ts: new Date(2025,4,17) },
+  { ver: "119.3", items: 10, date: "Jun 16, 2025", era: "manual", days: 30, ts: new Date(2025,5,16) },
+  { ver: "119.4", items: 28, date: "Aug 07, 2025", era: "manual", days: 52, ts: new Date(2025,7,7) },
+  { ver: "119.5", items: 15, date: "Sep 08, 2025", era: "manual", days: 32, ts: new Date(2025,8,8) },
+  { ver: "119.6", items: 128, date: "Oct 07, 2025", era: "manual", days: 29, ts: new Date(2025,9,7) },
+  { ver: "119.8", items: 25, date: "Oct 24, 2025", era: "manual", days: 17, ts: new Date(2025,9,24) },
+  { ver: "119.9", items: 7, date: "Nov 21, 2025", era: "manual", days: 28, ts: new Date(2025,10,21) },
+  { ver: "120.0", items: 95, date: "Jan 13, 2026", era: "auto", days: 53, ts: new Date(2026,0,13) },
+  { ver: "120.1", items: 17, date: "Jan 22, 2026", era: "auto", days: 9, ts: new Date(2026,0,22) },
+  { ver: "120.2", items: 1, date: "Feb 02, 2026", era: "auto", days: 11, ts: new Date(2026,1,2) },
+  { ver: "120.3", items: 19, date: "Feb 10, 2026", era: "auto", days: 8, ts: new Date(2026,1,10) },
+  { ver: "120.4", items: 12, date: "Feb 23, 2026", era: "auto", days: 13, ts: new Date(2026,1,23) },
+  { ver: "120.5", items: 16, date: "Mar 11, 2026", era: "auto", days: 16, ts: new Date(2026,2,11) },
+];
+
+const startTs = releases[0].ts.getTime();
+const endTs = releases[releases.length - 1].ts.getTime();
+const span = endTs - startTs;
+
+const padL = 58, padR = 30, padT = 44, padB = 90;
+const svgW = 1100, plotH = 266;
+const plotW = svgW - padL - padR;
+const svgH = plotH + padT + padB;
+
+let currentView = "items";
+
+function getX(ts) { return padL + ((ts.getTime() - startTs) / span) * plotW; }
+function getY(val, maxVal) { return padT + plotH - (val / maxVal) * plotH; }
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById("btn-items").classList.toggle("active", view === "items");
+  document.getElementById("btn-cadence").classList.toggle("active", view === "cadence");
+  renderStats();
+  renderChart();
+}
+
+function renderStats() {
+  const manual = releases.filter(r => r.era === "manual");
+  const auto = releases.filter(r => r.era === "auto");
+  const mAvgI = Math.round(manual.reduce((s, r) => s + r.items, 0) / manual.length);
+  const aAvgI = Math.round(auto.reduce((s, r) => s + r.items, 0) / auto.length);
+  const mDays = manual.filter(r => r.days).map(r => r.days);
+  const aDays = auto.filter(r => r.days).map(r => r.days);
+  const mAvgD = Math.round(mDays.reduce((s, d) => s + d, 0) / mDays.length);
+  const aAvgD = Math.round(aDays.reduce((s, d) => s + d, 0) / aDays.length);
+
+  const isItems = currentView === "items";
+  const stats = [
+    { label: "🔴 2025 — Manual", val: isItems ? `${mAvgI} avg items` : `${mAvgD} avg days`,
+      sub: isItems ? "Range: 2 – 128 items" : "Range: 8 – 52 days", cls: "stat-red" },
+    { label: "🟢 2026 — Automated", val: isItems ? `${aAvgI} avg items` : `${aAvgD} avg days`,
+      sub: isItems ? "Range: 1 – 95 items" : "Range: 8 – 16 days", cls: "stat-teal" },
+    { label: "⚡ Impact", val: isItems ? `${Math.round((1 - aAvgI / mAvgI) * 100)}% smaller` : `${Math.round((1 - aAvgD / mAvgD) * 100)}% faster`,
+      sub: "Biweekly cadence achieved", cls: "stat-amber" },
+  ];
+
+  document.getElementById("stats-container").innerHTML = stats.map(s => `
+    <div class="stat-card ${s.cls}">
+      <div class="bar"></div>
+      <div class="label">${s.label}</div>
+      <div class="value">${s.val}</div>
+      <div class="sub">${s.sub}</div>
+    </div>
+  `).join("");
+}
+
+function renderChart() {
+  const svg = document.getElementById("chart");
+  svg.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`);
+
+  const isItems = currentView === "items";
+  const maxVal = isItems ? 140 : 58;
+  const yTicks = isItems ? [0, 25, 50, 75, 100, 125] : [0, 10, 20, 30, 40, 50];
+
+  const data = releases.map(r => ({
+    ...r,
+    val: isItems ? r.items : (r.days ?? 0),
+  }));
+
+  const points = data.map(r => ({ x: getX(r.ts), y: getY(r.val, maxVal), ...r }));
+  const manualPts = points.filter(p => p.era === "manual");
+  const autoPts = points.filter(p => p.era === "auto");
+
+  const makePath = pts => pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const makeArea = pts => {
+    const base = padT + plotH;
+    return makePath(pts) + ` L${pts[pts.length-1].x.toFixed(1)},${base} L${pts[0].x.toFixed(1)},${base} Z`;
+  };
+
+  const divX = padL + (((releases[8].ts.getTime() + releases[9].ts.getTime()) / 2 - startTs) / span) * plotW;
+
+  // Month markers
+  const months = [];
+  let d = new Date(2025, 4, 1);
+  while (d <= releases[releases.length-1].ts) {
+    const x = getX(d);
+    if (x >= padL && x <= padL + plotW) {
+      months.push({ x, label: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }) });
+    }
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  }
+
+  let html = `
+    <defs>
+      <linearGradient id="gManual" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ef4444"/>
+        <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gAuto" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0d9488"/>
+        <stop offset="100%" stop-color="#0d9488" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+  `;
+
+  // Y grid
+  yTicks.forEach(t => {
+    const y = getY(t, maxVal);
+    html += `<line x1="${padL}" y1="${y}" x2="${padL+plotW}" y2="${y}" stroke="#f1f5f9" stroke-width="1"/>`;
+    html += `<text x="${padL-12}" y="${y+4}" text-anchor="end" font-size="11" fill="#334155" font-weight="600" font-family="DM Sans,Segoe UI">${t}</text>`;
+  });
+
+  // Y axis label
+  html += `<text x="16" y="${padT+plotH/2}" text-anchor="middle" font-size="11" fill="#334155" font-weight="700" font-family="DM Sans,Segoe UI" transform="rotate(-90,16,${padT+plotH/2})">${isItems ? "Work Items per Release" : "Days Between Releases"}</text>`;
+
+  // Automation zone
+  html += `<rect x="${divX}" y="${padT}" width="${padL+plotW-divX}" height="${plotH}" fill="#f0fdfa" opacity="0.6"/>`;
+  html += `<line x1="${divX}" y1="${padT-4}" x2="${divX}" y2="${padT+plotH}" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"/>`;
+  html += `<rect x="${divX-50}" y="${padT-22}" width="100" height="20" rx="5" fill="#0d9488"/>`;
+  html += `<text x="${divX}" y="${padT-8}" text-anchor="middle" font-size="9" fill="#fff" font-weight="700" font-family="DM Sans,Segoe UI" letter-spacing="1">AUTOMATION</text>`;
+
+  // 14-day target (cadence)
+  if (!isItems) {
+    const tY = getY(14, maxVal);
+    html += `<line x1="${padL}" y1="${tY}" x2="${padL+plotW}" y2="${tY}" stroke="#d97706" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>`;
+    html += `<text x="${padL+plotW-4}" y="${tY-6}" text-anchor="end" font-size="10" fill="#d97706" font-weight="700" font-family="DM Sans,Segoe UI">14-day biweekly target</text>`;
+  }
+
+  // Area fills
+  html += `<path d="${makeArea(manualPts)}" fill="url(#gManual)" opacity="0.18"/>`;
+  if (autoPts.length > 1) html += `<path d="${makeArea(autoPts)}" fill="url(#gAuto)" opacity="0.2"/>`;
+
+  // Lines
+  html += `<path d="${makePath(manualPts)}" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (autoPts.length > 1) html += `<path d="${makePath(autoPts)}" fill="none" stroke="#0d9488" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+  // Connecting dash
+  const lastM = manualPts[manualPts.length - 1];
+  const firstA = autoPts[0];
+  html += `<line x1="${lastM.x}" y1="${lastM.y}" x2="${firstA.x}" y2="${firstA.y}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4"/>`;
+
+  // Data points
+  points.forEach((p, i) => {
+    const color = p.era === "manual" ? "#ef4444" : "#0d9488";
+    const tooltipY = p.y - 64;
+    const valText = isItems ? `${p.val} items` : (p.days !== null ? `${p.val} days` : "—");
+
+    html += `<g class="data-point">`;
+    // Hover ring
+    html += `<circle class="hover-ring" cx="${p.x}" cy="${p.y}" r="22" fill="${color}" opacity="0"/>`;
+    // Drop line
+    html += `<line class="drop-line" x1="${p.x}" y1="${p.y+10}" x2="${p.x}" y2="${padT+plotH}" stroke="${color}" stroke-width="1" stroke-dasharray="3,3" opacity="0"/>`;
+    // Outer circle
+    html += `<circle class="outer-circle" cx="${p.x}" cy="${p.y}" r="6" fill="#fff" stroke="${color}" stroke-width="2.5" style="transition:r 0.15s"/>`;
+    // Inner dot
+    html += `<circle class="inner-dot" cx="${p.x}" cy="${p.y}" r="3" fill="${color}" style="transition:r 0.15s"/>`;
+    // Version label
+    html += `<text class="version-label" x="${p.x}" y="${padT+plotH+18}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#94a3b8" font-family="DM Sans,Segoe UI" style="transition:fill 0.15s">${p.ver}</text>`;
+    html += `<text x="${p.x}" y="${padT+plotH+30}" text-anchor="middle" font-size="8" fill="#b0b8c4" font-family="DM Sans,Segoe UI">${p.date}</text>`;
+    // Tooltip
+    html += `<g class="tooltip-group">`;
+    html += `<rect x="${p.x-60}" y="${tooltipY}" width="120" height="52" rx="10" fill="#0f172a" opacity="0.94"/>`;
+    html += `<polygon points="${p.x-7},${tooltipY+52} ${p.x+7},${tooltipY+52} ${p.x},${tooltipY+60}" fill="#0f172a" opacity="0.94"/>`;
+    html += `<text x="${p.x}" y="${tooltipY+22}" text-anchor="middle" font-size="17" font-weight="800" fill="#fff" font-family="DM Sans,Segoe UI">${valText}</text>`;
+    html += `<text x="${p.x}" y="${tooltipY+40}" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="DM Sans,Segoe UI">Vault ${p.ver} · ${p.date}</text>`;
+    html += `</g>`;
+    html += `</g>`;
+  });
+
+  // Month ticks
+  months.forEach(m => {
+    html += `<line x1="${m.x}" y1="${padT+plotH}" x2="${m.x}" y2="${padT+plotH+5}" stroke="#cbd5e1" stroke-width="1"/>`;
+    html += `<text x="${m.x}" y="${padT+plotH+54}" text-anchor="middle" font-size="10" fill="#334155" font-weight="700" font-family="DM Sans,Segoe UI">${m.label}</text>`;
+  });
+
+  // Timeline base
+  html += `<line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+
+  // Era labels
+  html += `<text x="${padL+(divX-padL)/2}" y="${padT+plotH+76}" text-anchor="middle" font-size="12" fill="#dc2626" font-weight="700" font-family="DM Sans,Segoe UI" opacity="0.6">◀ Manual Releases (2025)</text>`;
+  html += `<text x="${divX+(padL+plotW-divX)/2}" y="${padT+plotH+76}" text-anchor="middle" font-size="12" fill="#0d9488" font-weight="700" font-family="DM Sans,Segoe UI" opacity="0.6">Automated Releases (2026) ▶</text>`;
+
+  svg.innerHTML = html;
+}
+
+// Init
+renderStats();
+renderChart();
+</script>
+
+</body>
+</html>
